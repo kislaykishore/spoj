@@ -38,6 +38,27 @@ Node* buildTree(int* array, int startIndex, int endIndex, Node* treeArray, int i
     }
 }
 
+Node* update(Node* treeArray, int idx, int updateIndex, int queryStartIdx, int queryEndIdx, int updateVal) {
+    if(updateIndex < queryStartIdx || updateIndex > queryEndIdx) {
+        return treeArray + idx;
+    }
+    if(queryStartIdx == queryEndIdx && queryStartIdx == updateIndex) {
+        treeArray[idx].totalSum = treeArray[idx].maxSuffixSum = treeArray[idx].maxPrefixSum = treeArray[idx].maxSubarraySum = updateVal;
+        return treeArray + idx;
+    } else {
+        // there is a partial match
+        int mid = (queryStartIdx + queryEndIdx)/2;
+        Node* val1 = update(treeArray, 2 * idx, updateIndex, queryStartIdx, mid, updateVal);
+        Node* val2 = update(treeArray, 2 * idx + 1, updateIndex, mid + 1, queryEndIdx, updateVal);
+        treeArray[idx].maxPrefixSum = max(val1->maxPrefixSum, val1->totalSum + val2->maxPrefixSum);
+        treeArray[idx].maxSuffixSum = max(val1->maxSuffixSum + val2->totalSum, val2->maxSuffixSum);
+        treeArray[idx].totalSum = val1->totalSum + val2->totalSum;
+        treeArray[idx].maxSubarraySum = max(val1->maxSubarraySum, val2->maxSubarraySum);
+        treeArray[idx].maxSubarraySum = max(treeArray[idx].maxSubarraySum, val1->maxSuffixSum + val2->maxPrefixSum);
+        return treeArray + idx;
+    }
+}
+
 Node query(Node* treeArray, int idx, int startIndex, int endIndex, int queryStartIdx, int queryEndIdx) {
     if(queryStartIdx <= startIndex && queryEndIdx >= endIndex) {
         return treeArray[idx];
@@ -81,10 +102,14 @@ int main() {
     int m;
     scanf("%d", &m);
     for(int i=0;i<m;++i) {
-        int startIndex, endIndex;
-        scanf("%d %d", &startIndex, &endIndex);
-        Node node = query(treeArray, 1, 1, n, startIndex, endIndex);
-        printf("%d\n", node.maxSubarraySum);
+        int op, startIndex, endIndex;
+        scanf("%d %d %d", &op, &startIndex, &endIndex);
+        if(op == 1) {
+            Node node = query(treeArray, 1, 1, n, startIndex, endIndex);
+            printf("%d\n", node.maxSubarraySum);
+        } else {
+            update(treeArray, 1, startIndex, 1, n, endIndex);
+        }
     }
     delete [] treeArray;
 }
