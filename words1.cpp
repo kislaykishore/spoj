@@ -1,84 +1,87 @@
 #include<cstdio>
-#include<map>
-#include<list>
+#include<set>
+#include<cstring>
 using namespace std;
+
+struct Node {
+    int parent;
+    int rank;
+};
+
+int find(Node* array, int idx) {
+    if(array[idx].parent != -1) {
+        array[idx].parent = find(array, array[idx].parent);
+    } else {
+        return idx;
+    }
+}
+
+void unin(Node* array, int a, int b) {
+    int p1 = find(array, a);
+    int p2 = find(array, b);
+    if(p1 == p2) {
+        return;
+    }
+    Node& n1 = array[p1];
+    Node& n2 = array[p2];
+    if(n1.rank < n2.rank) {
+        n1.parent = p2;
+    } else if(n2.rank < n1.rank) {
+        n2.parent = p1;
+    } else {
+        n2.parent = p1;
+        n1.rank++;
+    }
+}
+int abs(int a) {
+    return a<0?-a:a;
+}
 int main() {
     int tests;
     scanf("%d", &tests);
     while(tests--) {
-        int inputs;
-        map<char, int> degreeMap;
-        scanf("%d", &inputs);
-        char ch;
-        scanf("%c", &ch);
-        map<char, list<char>* > graph;
-        for(int i=0;i<inputs;++i) {
-            scanf("%c", &ch);
-            char ch1 = ch;
-            char ch2;
-            while(true) {
-                scanf("%c", &ch);
-                if(ch == '\n') {
-                    break;
-                } else {
-                    ch2 = ch;
-                }
-            }
-            if(graph[ch1] == NULL) {
-                graph[ch1] = new list<char>();
-            }
-            if(graph.find(ch2) == graph.end()) {
-                graph[ch2] = new list<char>();
-            }
-            graph[ch1]->push_back(ch2);
-            degreeMap[ch1] = degreeMap[ch1] + 1;
-            degreeMap[ch2] = degreeMap[ch2] - 1;
+        int n;
+        scanf("%d", &n);
+        // This array keeps track of the nodes involved
+        int indegree[26];
+        int outdegree[26];
+        memset(indegree, 0, sizeof(indegree));
+        memset(outdegree, 0, sizeof(outdegree));
+        Node array[26];
+        memset(array, -1, sizeof(array));
+        set<int> chars;
+        for(int i=0;i<n;++i) {
+            char str[1001];
+            scanf("%s", str);
+            int lastIndex = strlen(str) - 1;
+            outdegree[str[0] - 'a']++;
+            indegree[str[lastIndex] - 'a']++;
+            chars.insert(str[0] - 'a');
+            chars.insert(str[lastIndex] - 'a');
+            unin(array, str[0] - 'a', str[lastIndex] - 'a');
         }
-        char startVertex = '$';
-        char endVertex = '$';
+        // For an Eulerian path to be present,  all indegrees and outdegrees should
+        // be same except for two nodes where it should differ by 1
+        bool found = true;
         int count = 0;
-        bool possible = true;
-        for(map<char, int>::iterator itr = degreeMap.begin(); itr != degreeMap.end(); ++itr) {
-            if(itr->second != 0) {
-                if(count == 2) {
-                    possible = false;
+        for(int i=0;i<26 && found;++i) {
+            if(indegree[i] != outdegree[i]) {
+                if(abs(indegree[i] - outdegree[i]) != 1) {
+                    found = false;
                 }
-                else if(itr->second == 1) {
-                    startVertex = itr->first;
-                    count++;
-                } else if(itr->second == -1) {
-                    endVertex = itr->first;
-                    count++;
-                } else {
-                    possible = false;
-                }
+                count++;
             }
-        }
-
-        // if possible is false, we have to check whether the graph is connected
-        // we know the start and end vertices, so, we just have to travel through the graph
-
-        possible = startVertex != '$' && endVertex != '$' && possible;
-        if(possible) {
-            char vertex = startVertex;
-            while(!graph[vertex]->empty()) {
-                list<char>* v = graph[vertex];
-                char nextVertex = (*v).front();
-                (*v).pop_front();
-                vertex = nextVertex;
-            }
-            // check if any of the vertices is not visited
-            for(map<char, list<char>* >::iterator it=graph.begin();possible && it != graph.end();++it) {
-               if(!it->second->empty()) {
-                   possible = false;
-               }
-
-            }
-        }
-        if(possible) {
-            printf("Ordering is possible.\n");
-        } else {
-            printf("The door cannot be opened.\n");
-        }
+       }
+       int begin = -1;
+       for(set<int>::iterator itr=chars.begin();found && itr != chars.end();++itr) {
+           int tmpParent = find(array, *itr);
+           if(begin == -1) {
+               begin = tmpParent;
+           } else if(begin != tmpParent) {
+               found = false;
+           }
+       }
+       printf("%s\n", !found || (count != 2 && count != 0)?"The door cannot be opened.":"Ordering is possible.");
+        
     }
 }
